@@ -1,0 +1,161 @@
+-- // AGUARDAR JOGO CARREGAR // --
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- // CONFIGURAÇÕES DE ACESSO // --
+-[span_0](start_span)- Webhook removido para privacidade[span_0](end_span)
+local KEYS = {
+    ["KATANA_Dono_99"] = "ADMINISTRADOR",
+    ["KATANA_VIP_PAID"] = "CLIENTE PAGO",
+    ["PAULO_VIP_PERMANENTE"] = "PAULO CÉSAR (PERMANENTE)"
+}
+local _B = "ANDRES101083" -- Blacklist
+
+local p = game.Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+-- // SEGURANÇA (BLACKLIST) // --
+if p.Name == _B or p.DisplayName == _B then 
+    p:Kick("\n[KATANA HUB]\nVOCÊ ESTÁ NA BLACKLIST.") 
+    return 
+end
+
+-- // SISTEMA DE FOV (CÍRCULO VERMELHO VAZADO) // --
+local FOVGui = Instance.new("ScreenGui", game.CoreGui)
+[span_1](start_span)local FOVFrame = Instance.new("Frame", FOVGui)[span_1](end_span)
+FOVFrame.Name = "KatanaFOV"
+FOVFrame.BackgroundTransparency = 1 
+FOVFrame.Size = UDim2.new(0, 300, 0, 300) 
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+FOVFrame.Visible = false
+
+local UICorner = Instance.new("UICorner", FOVFrame)
+UICorner.CornerRadius = UDim.new(1, 0)
+
+local UIStroke = Instance.new("UIStroke", FOVFrame)
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 2
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- // FUNÇÃO PRINCIPAL DO SCRIPT // --
+local function IniciarVIP(nivel)
+    -[span_2](start_span)- Sistema de Logs para Discord removido por solicitação[span_2](end_span)
+
+    -- Variáveis de Funções
+    _G.SilentAim = false
+    _G.AimbotLock = false
+    _G.ESP = false
+    _G.VipSpeed = false
+    _G.UseFOV = false
+
+    -- MENU UI
+    local UI = Instance.new("ScreenGui", game.CoreGui)
+    [span_3](start_span)local Main = Instance.new("Frame", UI)[span_3](end_span)
+    [span_4](start_span)Main.Size = UDim2.new(0, 220, 0, 360)[span_4](end_span)
+    [span_5](start_span)Main.Position = UDim2.new(0.5, -110, 0.4, 0)[span_5](end_span)
+    [span_6](start_span)Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)[span_6](end_span)
+    [span_7](start_span)Main.Active = true[span_7](end_span)
+    [span_8](start_span)Main.Draggable = true[span_8](end_span)
+    
+    local T = Instance.new("TextLabel", Main)
+    [span_9](start_span)T.Size = UDim2.new(1, 0, 0, 35)[span_9](end_span)
+    [span_10](start_span)T.Text = "KATANA VIP - "..nivel[span_10](end_span)
+    [span_11](start_span)T.BackgroundColor3 = Color3.fromRGB(180, 0, 0)[span_11](end_span)
+    [span_12](start_span)T.TextColor3 = Color3.new(1,1,1)[span_12](end_span)
+
+    local function CriarBotao(txt, pos, var)
+        local btn = Instance.new("TextButton", Main)
+        [span_13](start_span)btn.Size = UDim2.new(0.85, 0, 0, 40)[span_13](end_span)
+        [span_14](start_span)btn.Position = UDim2.new(0.075, 0, 0, pos)[span_14](end_span)
+        [span_15](start_span)btn.Text = txt[span_15](end_span)
+        [span_16](start_span)btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)[span_16](end_span)
+        [span_17](start_span)btn.TextColor3 = Color3.new(1, 1, 1)[span_17](end_span)
+        btn.MouseButton1Click:Connect(function()
+            _G[var] = not _G[var]
+            if var == "UseFOV" then FOVFrame.Visible = _G[var] end
+            btn.BackgroundColor3 = _G[var] and Color3.fromRGB(180, 0, 0) or Color3.fromRGB(30, 30, 30)
+        end)
+    end
+
+    CriarBotao("SILENT AIM", 50, "SilentAim")
+    [span_18](start_span)CriarBotao("AIMBOT (LOCK)", 100, "AimbotLock")[span_18](end_span)
+    CriarBotao("EXIBIR FOV", 150, "UseFOV")
+    CriarBotao("ESP WALLHACK", 200, "ESP")
+    CriarBotao("GHOST SPEED", 250, "VipSpeed")
+
+    -- LÓGICA DE TARGET
+    local function GetClosest()
+        local target, dist = nil, (_G.UseFOV and 150 or math.huge)
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= p and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                [span_19](start_span)local pos, vis = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)[span_19](end_span)
+                if vis then
+                    local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if mag < dist then 
+                        [span_20](start_span)target = v[span_20](end_span)
+                        [span_21](start_span)dist = mag[span_21](end_span)
+                    end
+                end
+            end
+        end
+        return target
+    end
+
+    -- LOOP GERAL
+    RunService.RenderStepped:Connect(function()
+        local target = GetClosest()
+        if _G.AimbotLock and target and target.Character then
+            [span_22](start_span)Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)[span_22](end_span)
+        end
+        if _G.VipSpeed and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            if p.Character.Humanoid.MoveDirection.Magnitude > 0 then
+                p.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + (p.Character.Humanoid.MoveDirection * 0.45)
+            end
+        end
+        -- ESP
+        [span_23](start_span)for _, plr in pairs(game.Players:GetPlayers()) do[span_23](end_span)
+            if plr ~= p and plr.Character and plr.Character:FindFirstChild("Head") then
+                local head = plr.Character.Head
+                local tag = head:FindFirstChild("KatanaESP")
+                if not tag then
+                    [span_24](start_span)local bg = Instance.new("BillboardGui", head)[span_24](end_span)
+                    [span_25](start_span)bg.Name = "KatanaESP"[span_25](end_span)
+                    [span_26](start_span)bg.Size = UDim2.new(0, 100, 0, 50)[span_26](end_span)
+                    [span_27](start_span)bg.AlwaysOnTop = true[span_27](end_span)
+                    local tl = Instance.new("TextLabel", bg)
+                    [span_28](start_span)tl.Size = UDim2.new(1,0,1,0)[span_28](end_span)
+                    [span_29](start_span)tl.BackgroundTransparency = 1[span_29](end_span)
+                    [span_30](start_span)tl.TextColor3 = Color3.new(1,1,1)[span_30](end_span)
+                    [span_31](start_span)tl.Text = plr.Name[span_31](end_span)
+                    tag = bg
+                end
+                tag.Enabled = _G.ESP
+            end
+        end
+    end)
+end
+
+-- // SISTEMA DE KEY // --
+local function AbrirKeySystem()
+    [span_32](start_span)local sg = Instance.new("ScreenGui", game.CoreGui)[span_32](end_span)
+    [span_33](start_span)local f = Instance.new("Frame", sg)[span_33](end_span)
+    [span_34](start_span)f.Size = UDim2.new(0, 250, 0, 150)[span_34](end_span)
+    [span_35](start_span)f.Position = UDim2.new(0.5, -125, 0.4, 0)[span_35](end_span)
+    [span_36](start_span)f.BackgroundColor3 = Color3.fromRGB(10, 10, 10)[span_36](end_span)
+    [span_37](start_span)local b = Instance.new("TextBox", f)[span_37](end_span)
+    [span_38](start_span)b.Size = UDim2.new(0.8, 0, 0, 40)[span_38](end_span)
+    [span_39](start_span)b.Position = UDim2.new(0.1, 0, 0.2, 0)[span_39](end_span)
+    [span_40](start_span)b.PlaceholderText = "Sua Key VIP..."[span_40](end_span)
+    [span_41](start_span)local btn = Instance.new("TextButton", f)[span_41](end_span)
+    [span_42](start_span)btn.Size = UDim2.new(0.8, 0, 0, 40)[span_42](end_span)
+    [span_43](start_span)btn.Position = UDim2.new(0.1, 0, 0.6, 0)[span_43](end_span)
+    [span_44](start_span)btn.Text = "LOGAR"[span_44](end_span)
+    [span_45](start_span)btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)[span_45](end_span)
+    
+    btn.MouseButton1Click:Connect(function()
+        local nivel = KEYS[b.Text]
+        if nivel then sg:Destroy(); IniciarVIP(nivel) else b.Text = ""; b.PlaceholderText = "KEY INVÁLIDA" end
+    end)
+end
+AbrirKeySystem()
