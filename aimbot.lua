@@ -1,4 +1,4 @@
--- // KATANA HUB V2 - MAIN SCRIPT (COM ESP) // --
+-- // KATANA HUB V2 - MAIN SCRIPT (FOV MÉDIO E TRANSPARENTE) // --
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -64,7 +64,6 @@ local function CreateESP(plr)
         else Box.Visible = false; Name.Visible = false end
     end)
 end
-
 for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
 Players.PlayerAdded:Connect(CreateESP)
 
@@ -73,11 +72,13 @@ game:GetService("ReplicatedStorage").ChildAdded:Connect(function(c)
     if c.Name == "KatanaKillSwitch" and _G.UserRank ~= "OWNER" then _G.KatanaMaster = false end
 end)
 
--- // 4. AIMBOT 0.8 // --
+-- // 4. CONFIGURAÇÃO DO FOV (AJUSTADO: MÉDIO E VAZIO) // --
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.Radius = 130
+FOVCircle.Thickness = 1.5
+FOVCircle.Radius = 150 -- Tamanho Médio (Equilibrado)
+FOVCircle.Filled = false -- AGORA ESTÁ 100% VAZIO POR DENTRO
 FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+FOVCircle.Transparency = 1
 FOVCircle.Visible = false
 
 RunService.RenderStepped:Connect(function()
@@ -85,9 +86,8 @@ RunService.RenderStepped:Connect(function()
         FOVCircle.Position = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
         FOVCircle.Visible = true
         
-        -- Dono não usa esta mira aqui (ele usa a do Owner Panel)
         if _G.UserRank ~= "OWNER" then
-            local target, dist = nil, 130
+            local target, dist = nil, 150
             for _, v in pairs(Players:GetPlayers()) do
                 if v ~= lp and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
                     local p, vis = cam:WorldToViewportPoint(v.Character.Head.Position)
