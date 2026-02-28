@@ -1,5 +1,6 @@
 {
-  "Status": "OFFLINE",
+  "Status": "ONLINE",
   "Aviso": "Katana Hub VIP Ativado!",
-  "Fling_Forcado": "DESLIGADO"
+  "Fling_Forcado": "DESLIGADO",
+  "Banidos": []
 }
