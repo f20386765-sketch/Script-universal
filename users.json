@@ -1,6 +1,8 @@
 {
-  "BannedUsers": [12345, 8901234],
-  "VipUsers": [9458466054],
-  "GlobalMessage": "Katana HUB: Versão 0.8 Ativa!",
+  "Owner": [999999999],
+  "Admins": [111111111, 222222222],
+  "VipUsers": [333333333],
+  "BannedUsers": [444444444, 555555555],
+  "GlobalMessage": "Katana HUB V2: Sistema de Cargos Ativo!",
   "ForceOff": false
 }
