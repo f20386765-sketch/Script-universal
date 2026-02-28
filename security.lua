@@ -1,8 +1,11 @@
--- // KATANA HUB V5.2 - MÓDULO DE SEGURANÇA // --
+-- // KATANA HUB V5.2 - SECURITY MODULE // --
 local HttpService = game:GetService("HttpService")
 local lp = game:GetService("Players").LocalPlayer
 
--- // WEBHOOK CONFIG // --
+-- // GERADOR DE SESSÃO // --
+_G.KTN_SESSION_KEY = tostring(math.random(100000, 999999)) .. "-SECURE"
+
+-- // WEBHOOK OFUSCADO // --
 local function EnviarLog(motivo)
     local partA = "https://discord.com/api/webhooks/"
     local partB = "1474991855233011888"
@@ -10,28 +13,29 @@ local function EnviarLog(motivo)
     local WH = partA .. partB .. partC
 
     local data = {
+        ["username"] = "KATANA SHIELD",
         ["embeds"] = {{
-            ["title"] = "🚨 SEGURANÇA KATANA",
+            ["title"] = "🚨 VIOLAÇÃO DETETADA",
             ["color"] = 16711680,
             ["fields"] = {
-                {["name"] = "Jogador:", ["value"] = lp.Name.." ("..lp.UserId..")"},
+                {["name"] = "Infrator:", ["value"] = lp.Name.." ("..lp.UserId..")"},
                 {["name"] = "Motivo:", ["value"] = motivo}
             },
             ["timestamp"] = os.date("!Y-%m-%dT%H:%M:%SZ")
         }}
     }
+    
     local req = syn and syn.request or http_request or request or HttpService.request
-    pcall(function() req({Url = WH, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) end)
+    pcall(function() 
+        req({Url = WH, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(data)}) 
+    end)
 end
 
--- // GERAÇÃO DA CHAVE DE SESSÃO // --
-_G.KTN_SESSION_KEY = tostring(math.random(1000, 9999)) .. "-SECURE"
-
--- // FUNÇÃO DE CHECAGEM // --
+-- // FUNÇÃO GLOBAL DE BAN/KICK // --
 _G.CheckIntegrity = function(motivo)
     EnviarLog(motivo)
     task.wait(0.5)
-    lp:Kick("\n[KATANA HUB]\nViolação de Segurança Detetada.")
+    lp:Kick("\n[KATANA HUB]\nErro de Segurança: " .. motivo)
 end
 
-warn("🛡️ SEGURANÇA ATIVA E CHAVE GERADA.")
+warn("🛡️ SEGURANÇA ATIVA: CHAVE GERADA.")
