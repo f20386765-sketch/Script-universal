@@ -1,7 +1,7 @@
 {
-  "Owner": [9458466054],
+  "Owner": [],
   "Admins": [111111111, 222222222],
-  "VipUsers": [333333333],
+  "VipUsers": [9458466054],
   "BannedUsers": [444444444, 555555555],
   "GlobalMessage": "Katana HUB V2: Sistema Ativo",
   "ForceOff": false
