@@ -1,4 +1,4 @@
--- // KATANA HUB V7.7 - FINAL VERSION (ADMIN + HWID + REMOTE) // --
+-- // KATANA HUB V7.9 - FINAL SYNCED VERSION // --
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -6,18 +6,24 @@ local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
--- Identificador Único do Aparelho (Simulação de IP)
+-- Identificador de Hardware (HWID)
 local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
 
--- Links do GitHub
+-- Links do GitHub (Mantenha os seus links aqui)
 local cfg = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/users.json"
 local sec = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/security.lua"
 
--- // 1. CARREGAR SEGURANÇA // --
-pcall(function() loadstring(game:HttpGet(sec .. "?t=" .. math.random(1, 9999)))() end)
+-- // 1. CARREGAR SEGURANÇA (SECURITY.LUA) // --
+local function LoadSecurity()
+    local s, e = pcall(function() 
+        loadstring(game:HttpGet(sec .. "?t=" .. math.random(1, 9999)))() 
+    end)
+    if not s then warn("Erro ao carregar segurança: "..tostring(e)) end
+end
+LoadSecurity()
 task.wait(1.5)
 
--- // 2. VARIÁVEIS GLOBAIS // --
+-- // 2. VARIÁVEIS DE CONTROLE // --
 _G.KTN_MS = false
 _G.KTN_RK = "Sincronizando..."
 _G.KTN_ST = 0.8
@@ -26,66 +32,62 @@ _G.KTN_ESP_Tracers = false
 _G.KTN_ESP_Health = false
 _G.KTN_ESP_Distance = false
 
--- // 3. SINCRONIZAÇÃO E CONTROLO REMOTO // --
+-- // 3. SINCRONIZAÇÃO E CONTROLE DE RANKS // --
 local function Sincronizar()
     local s, r = pcall(function() return game:HttpGet(cfg .. "?t=" .. math.random(1, 9999)) end)
     if s then
         local d = HttpService:JSONDecode(r)
         
-        -- A. BAN POR APARELHO (IP/HWID)
+        -- A. BAN POR APARELHO (HWID/IP)
         for _, bIP in pairs(d.BannedIPs or {}) do
             if hwid == bIP then
-                lp:Kick("\n[KATANA]\nO teu APARELHO está banido deste script.\nID: "..hwid)
+                lp:Kick("\n[KATANA]\nHardware Banido.\nID: "..hwid)
                 return false
             end
         end
 
-        -- B. KILL-SWITCH (Botão de Pânico)
-        if d.Config and d.Config.ScriptEnabled == false then
-            lp:Kick("\n[KATANA]\n" .. (d.Config.MaintenanceMessage or "Script Desativado."))
-            return false
-        end
-
-        -- C. BLACKLIST DE JOGOS
-        for _, gameID in pairs(d.Config.BlacklistedGames or {}) do
-            if game.PlaceId == gameID then
-                lp:Kick("\n[KATANA]\nEste jogo foi bloqueado por segurança.")
+        -- B. KILL-SWITCH E BLACKLIST DE JOGOS
+        if d.Config then
+            if d.Config.ScriptEnabled == false then
+                lp:Kick("\n[KATANA]\n" .. (d.Config.MaintenanceMessage or "Manutenção."))
                 return false
+            end
+            for _, gID in pairs(d.Config.BlacklistedGames or {}) do
+                if game.PlaceId == gID then lp:Kick("\n[KATANA]\nJogo Bloqueado.") return false end
             end
         end
 
-        -- D. HIERARQUIA DE RANKS
+        -- C. HIERARQUIA DE RANKS
         local myID = lp.UserId
-        local rF = "User"
+        local rank = "User"
 
-        for _, o in pairs(d.Owner or {}) do if myID == o then rF = "OWNER" end end
-        if rF == "User" then
-            for _, a in pairs(d.Admins or {}) do if myID == a then rF = "ADMIN" end end
+        for _, o in pairs(d.Owner or {}) do if myID == o then rank = "OWNER" end end
+        if rank == "User" then
+            for _, a in pairs(d.Admins or {}) do if myID == a then rank = "ADMIN" end end
         end
-        if rF == "User" then
-            for _, v in pairs(d.VipUsers or {}) do if myID == v then rF = "VIP" end end
+        if rank == "User" then
+            for _, v in pairs(d.VipUsers or {}) do if myID == v then rank = "VIP" end end
         end
 
-        -- E. BAN POR CONTA
+        -- D. BAN POR CONTA
         for _, b in pairs(d.BannedUsers or {}) do
             if myID == b then 
-                lp:Kick("\n[KATANA]\nSua conta foi banida.\nHWID para registro: "..hwid) 
+                lp:Kick("\n[KATANA]\nConta Banida.\nHWID: "..hwid) 
                 return false 
             end
         end
 
-        _G.KTN_RK = rF
+        _G.KTN_RK = rank
         return true
     end
-    _G.KTN_RK = "Offline/Local"
     return true
 end
 
 if not Sincronizar() then return end
 
--- // 4. INTERFACE GRÁFICA (UI) // --
+-- // 4. INTERFACE (UI) // --
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "KatanaV7_Final"
+gui.Name = "KatanaV7_Main"
 
 local mainBtn = Instance.new("TextButton", gui)
 mainBtn.Size = UDim2.new(0, 50, 0, 50); mainBtn.Position = UDim2.new(0, 15, 0.5, -25)
@@ -129,7 +131,7 @@ local b2 = Instance.new("TextButton", sidebar); b2.Size = UDim2.new(1, -10, 0, 3
 b1.Activated:Connect(function() combatTab.Visible = true; visualTab.Visible = false end)
 b2.Activated:Connect(function() combatTab.Visible = false; visualTab.Visible = true end)
 
--- // 5. ESP DE LINHAS (FIX UNIVERSAL) // --
+-- // 5. ESP FIX (MÉTODO DAS 4 LINHAS) // --
 local function CreateESP(p)
     local L1 = Drawing.new("Line"); L1.Visible = false; L1.Color = Color3.new(1,0,0); L1.Thickness = 1
     local L2 = Drawing.new("Line"); L2.Visible = false; L2.Color = Color3.new(1,0,0); L2.Thickness = 1
@@ -202,4 +204,4 @@ RunService.RenderStepped:Connect(function()
 end)
 
 mainBtn.Activated:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-print("✅ Katana Hub V7.7: Sistema de Ranks e HWID Ativo.")
+print("✅ Katana Hub V7.9 Operacional!")
