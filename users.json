@@ -1,8 +1,20 @@
 {
-  "Owner": [],
-  "Admins": [111111111, 222222222],
-  "VipUsers": [9458466054],
-  "BannedUsers": [444444444, 555555555],
-  "GlobalMessage": "Katana HUB V2: Sistema Ativo",
-  "ForceOff": false
+  "Config": {
+    "ScriptEnabled": true,
+    "MaintenanceMessage": "O Katana Hub está em manutenção para evitar bans. Voltamos logo!",
+    "BlacklistedGames": [
+      123456789,
+      987654321
+    ]
+  },
+  "Owner": [
+    20386765
+  ],
+  "VipUsers": [
+    9458466054,
+    55667788
+  ],
+  "BannedUsers": [
+    99999999
+  ]
 }
