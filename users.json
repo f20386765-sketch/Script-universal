@@ -1,19 +1,12 @@
 {
   "Config": {
     "ScriptEnabled": true,
-    "MaintenanceMessage": "O Katana Hub está em manutenção. Voltamos logo!",
+    "MaintenanceMessage": "Manutenção em curso.",
     "BlacklistedGames": []
   },
-  "Owner": [
-    20386765
-  ],
-  "Admins": [
-    12345678,
-    87654321
-  ],
-  "VipUsers": [
-    11223344
-  ],
+  "Owner": [20386765],
+  "Admins": [],
+  "VipUsers": [],
   "BannedUsers": [],
   "BannedIPs": []
 }
