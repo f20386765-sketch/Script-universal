@@ -1,4 +1,4 @@
--- // KATANA HUB V7.6 - ULTIMATE (REMOTE CONTROL + FIXED ESP) // --
+-- // KATANA HUB V7.7 - FINAL VERSION (ADMIN + HWID + REMOTE) // --
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -6,11 +6,14 @@ local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
+-- Identificador Único do Aparelho (Simulação de IP)
+local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
+
 -- Links do GitHub
 local cfg = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/users.json"
 local sec = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/security.lua"
 
--- // 1. SEGURANÇA INICIAL // --
+-- // 1. CARREGAR SEGURANÇA // --
 pcall(function() loadstring(game:HttpGet(sec .. "?t=" .. math.random(1, 9999)))() end)
 task.wait(1.5)
 
@@ -29,43 +32,60 @@ local function Sincronizar()
     if s then
         local d = HttpService:JSONDecode(r)
         
-        -- CHECK: Kill-Switch (Ideia 4)
-        if d.Config and d.Config.ScriptEnabled == false then
-            lp:Kick("\n[KATANA HUB]\n" .. (d.Config.MaintenanceMessage or "Script Desativado."))
-            return false
-        end
-
-        -- CHECK: Blacklist de Jogos (Ideia 3)
-        for _, gameID in pairs(d.Config.BlacklistedGames or {}) do
-            if game.PlaceId == gameID then
-                lp:Kick("\n[KATANA HUB]\nEste jogo foi bloqueado por segurança.")
+        -- A. BAN POR APARELHO (IP/HWID)
+        for _, bIP in pairs(d.BannedIPs or {}) do
+            if hwid == bIP then
+                lp:Kick("\n[KATANA]\nO teu APARELHO está banido deste script.\nID: "..hwid)
                 return false
             end
         end
 
-        -- CHECK: Banned Users
-        for _, bID in pairs(d.BannedUsers or {}) do
-            if lp.UserId == bID then lp:Kick("Estás banido.") return false end
+        -- B. KILL-SWITCH (Botão de Pânico)
+        if d.Config and d.Config.ScriptEnabled == false then
+            lp:Kick("\n[KATANA]\n" .. (d.Config.MaintenanceMessage or "Script Desativado."))
+            return false
         end
 
-        -- CHECK: Ranks
-        local rF = "User"
-        for _, oID in pairs(d.Owner or {}) do if lp.UserId == oID then rF = "OWNER" end end
-        if rF == "User" then
-            for _, vID in pairs(d.VipUsers or {}) do if lp.UserId == vID then rF = "VIP" end end
+        -- C. BLACKLIST DE JOGOS
+        for _, gameID in pairs(d.Config.BlacklistedGames or {}) do
+            if game.PlaceId == gameID then
+                lp:Kick("\n[KATANA]\nEste jogo foi bloqueado por segurança.")
+                return false
+            end
         end
+
+        -- D. HIERARQUIA DE RANKS
+        local myID = lp.UserId
+        local rF = "User"
+
+        for _, o in pairs(d.Owner or {}) do if myID == o then rF = "OWNER" end end
+        if rF == "User" then
+            for _, a in pairs(d.Admins or {}) do if myID == a then rF = "ADMIN" end end
+        end
+        if rF == "User" then
+            for _, v in pairs(d.VipUsers or {}) do if myID == v then rF = "VIP" end end
+        end
+
+        -- E. BAN POR CONTA
+        for _, b in pairs(d.BannedUsers or {}) do
+            if myID == b then 
+                lp:Kick("\n[KATANA]\nSua conta foi banida.\nHWID para registro: "..hwid) 
+                return false 
+            end
+        end
+
         _G.KTN_RK = rF
         return true
     end
-    warn("Falha ao conectar ao GitHub.")
-    return true -- Permite carregar mesmo com erro de rede (opcional)
+    _G.KTN_RK = "Offline/Local"
+    return true
 end
 
 if not Sincronizar() then return end
 
 -- // 4. INTERFACE GRÁFICA (UI) // --
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "KatanaV7_Ultimate"
+gui.Name = "KatanaV7_Final"
 
 local mainBtn = Instance.new("TextButton", gui)
 mainBtn.Size = UDim2.new(0, 50, 0, 50); mainBtn.Position = UDim2.new(0, 15, 0.5, -25)
@@ -103,18 +123,18 @@ CreateToggle("Tracers", visualTab, 45, "KTN_ESP_Tracers")
 CreateToggle("Health Bar", visualTab, 90, "KTN_ESP_Health")
 CreateToggle("Distance", visualTab, 135, "KTN_ESP_Distance")
 
-local b1 = Instance.new("TextButton", sidebar); b1.Size = UDim2.new(1, -10, 0, 35); b1.Position = UDim2.new(0, 5, 0, 10); b1.Text = "COMBAT"; b1.BackgroundColor3 = Color3.fromRGB(20,20,20); b1.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b1)
-local b2 = Instance.new("TextButton", sidebar); b2.Size = UDim2.new(1, -10, 0, 35); b2.Position = UDim2.new(0, 5, 0, 50); b2.Text = "VISUAL"; b2.BackgroundColor3 = Color3.fromRGB(20,20,20); b2.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b2)
+local b1 = Instance.new("TextButton", sidebar); b1.Size = UDim2.new(1, -10, 0, 35); b1.Position = UDim2.new(0, 5, 0, 10); b1.Text = "COMBAT"; b1.BackgroundColor3 = Color3.fromRGB(20,20,20); b1.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b1); b1.Font = Enum.Font.SourceSansBold; b1.TextSize = 12
+local b2 = Instance.new("TextButton", sidebar); b2.Size = UDim2.new(1, -10, 0, 35); b2.Position = UDim2.new(0, 5, 0, 50); b2.Text = "VISUAL"; b2.BackgroundColor3 = Color3.fromRGB(20,20,20); b2.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b2); b2.Font = Enum.Font.SourceSansBold; b2.TextSize = 12
+
 b1.Activated:Connect(function() combatTab.Visible = true; visualTab.Visible = false end)
 b2.Activated:Connect(function() combatTab.Visible = false; visualTab.Visible = true end)
 
--- // 5. ESP DE LINHAS (FIX PARA BOX NÃO PREENCHER) // --
+-- // 5. ESP DE LINHAS (FIX UNIVERSAL) // --
 local function CreateESP(p)
     local L1 = Drawing.new("Line"); L1.Visible = false; L1.Color = Color3.new(1,0,0); L1.Thickness = 1
     local L2 = Drawing.new("Line"); L2.Visible = false; L2.Color = Color3.new(1,0,0); L2.Thickness = 1
     local L3 = Drawing.new("Line"); L3.Visible = false; L3.Color = Color3.new(1,0,0); L3.Thickness = 1
     local L4 = Drawing.new("Line"); L4.Visible = false; L4.Color = Color3.new(1,0,0); L4.Thickness = 1
-    
     local Tracer = Drawing.new("Line"); Tracer.Visible = false; Tracer.Color = Color3.new(1,0,0)
     local HealthBar = Drawing.new("Square"); HealthBar.Visible = false; HealthBar.Filled = true
     local DistText = Drawing.new("Text"); DistText.Visible = false; DistText.Color = Color3.new(1,1,1); DistText.Size = 14; DistText.Outline = true
@@ -182,4 +202,4 @@ RunService.RenderStepped:Connect(function()
 end)
 
 mainBtn.Activated:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-print("✅ Katana Hub V7.6 Finalizado com Sucesso!")
+print("✅ Katana Hub V7.7: Sistema de Ranks e HWID Ativo.")
