@@ -1,4 +1,4 @@
--- // KATANA HUB V7.5 - FIX FONTE & ESP UNIVERSAL // --
+-- // KATANA HUB V7.6 - ULTIMATE (REMOTE CONTROL + FIXED ESP) // --
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -6,14 +6,15 @@ local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
+-- Links do GitHub
 local cfg = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/users.json"
 local sec = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/security.lua"
 
--- // 1. SEGURANÇA // --
+-- // 1. SEGURANÇA INICIAL // --
 pcall(function() loadstring(game:HttpGet(sec .. "?t=" .. math.random(1, 9999)))() end)
 task.wait(1.5)
 
--- // 2. VARIÁVEIS // --
+-- // 2. VARIÁVEIS GLOBAIS // --
 _G.KTN_MS = false
 _G.KTN_RK = "Sincronizando..."
 _G.KTN_ST = 0.8
@@ -22,24 +23,49 @@ _G.KTN_ESP_Tracers = false
 _G.KTN_ESP_Health = false
 _G.KTN_ESP_Distance = false
 
--- // 3. SINCRONIZAÇÃO // --
+-- // 3. SINCRONIZAÇÃO E CONTROLO REMOTO // --
 local function Sincronizar()
     local s, r = pcall(function() return game:HttpGet(cfg .. "?t=" .. math.random(1, 9999)) end)
     if s then
         local d = HttpService:JSONDecode(r)
-        local myID = lp.UserId
-        for _, b in pairs(d.BannedUsers or {}) do if myID == b then lp:Kick("Banido.") end end
-        local rF = "User"
-        for _, o in pairs(d.Owner or {}) do if myID == o then rF = "OWNER" end end
-        if rF == "User" then for _, v in pairs(d.VipUsers or {}) do if myID == v then rF = "VIP" end end end
-        _G.KTN_RK = rF
-    end
-end
-task.spawn(Sincronizar)
+        
+        -- CHECK: Kill-Switch (Ideia 4)
+        if d.Config and d.Config.ScriptEnabled == false then
+            lp:Kick("\n[KATANA HUB]\n" .. (d.Config.MaintenanceMessage or "Script Desativado."))
+            return false
+        end
 
--- // 4. INTERFACE (FONTE CORRIGIDA) // --
+        -- CHECK: Blacklist de Jogos (Ideia 3)
+        for _, gameID in pairs(d.Config.BlacklistedGames or {}) do
+            if game.PlaceId == gameID then
+                lp:Kick("\n[KATANA HUB]\nEste jogo foi bloqueado por segurança.")
+                return false
+            end
+        end
+
+        -- CHECK: Banned Users
+        for _, bID in pairs(d.BannedUsers or {}) do
+            if lp.UserId == bID then lp:Kick("Estás banido.") return false end
+        end
+
+        -- CHECK: Ranks
+        local rF = "User"
+        for _, oID in pairs(d.Owner or {}) do if lp.UserId == oID then rF = "OWNER" end end
+        if rF == "User" then
+            for _, vID in pairs(d.VipUsers or {}) do if lp.UserId == vID then rF = "VIP" end end
+        end
+        _G.KTN_RK = rF
+        return true
+    end
+    warn("Falha ao conectar ao GitHub.")
+    return true -- Permite carregar mesmo com erro de rede (opcional)
+end
+
+if not Sincronizar() then return end
+
+-- // 4. INTERFACE GRÁFICA (UI) // --
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "KatanaV7_Final"
+gui.Name = "KatanaV7_Ultimate"
 
 local mainBtn = Instance.new("TextButton", gui)
 mainBtn.Size = UDim2.new(0, 50, 0, 50); mainBtn.Position = UDim2.new(0, 15, 0.5, -25)
@@ -56,8 +82,8 @@ local sidebar = Instance.new("Frame", mainFrame); sidebar.Size = UDim2.new(0, 80
 local rLabel = Instance.new("TextLabel", mainFrame); rLabel.Size = UDim2.new(0, 270, 0, 20); rLabel.Position = UDim2.new(0, 80, 0, 25); rLabel.TextColor3 = Color3.new(0.6,0.6,0.6); rLabel.BackgroundTransparency = 1; rLabel.Font = Enum.Font.SourceSans
 task.spawn(function() while task.wait(2) do rLabel.Text = "Rank: " .. _G.KTN_RK end end)
 
-local combatTab = Instance.new("ScrollingFrame", mainFrame); combatTab.Size = UDim2.new(0, 260, 0, 160); combatTab.Position = UDim2.new(0, 85, 0, 50); combatTab.BackgroundTransparency = 1; combatTab.Visible = true
-local visualTab = Instance.new("ScrollingFrame", mainFrame); visualTab.Size = UDim2.new(0, 260, 0, 160); visualTab.Position = UDim2.new(0, 85, 0, 50); visualTab.BackgroundTransparency = 1; visualTab.Visible = false
+local combatTab = Instance.new("ScrollingFrame", mainFrame); combatTab.Size = UDim2.new(0, 260, 0, 160); combatTab.Position = UDim2.new(0, 85, 0, 50); combatTab.BackgroundTransparency = 1; combatTab.Visible = true; combatTab.ScrollBarThickness = 2
+local visualTab = Instance.new("ScrollingFrame", mainFrame); visualTab.Size = UDim2.new(0, 260, 0, 160); visualTab.Position = UDim2.new(0, 85, 0, 50); visualTab.BackgroundTransparency = 1; visualTab.Visible = false; visualTab.ScrollBarThickness = 2
 
 local function CreateToggle(name, parent, posY, globalVar)
     local btn = Instance.new("TextButton", parent)
@@ -82,7 +108,7 @@ local b2 = Instance.new("TextButton", sidebar); b2.Size = UDim2.new(1, -10, 0, 3
 b1.Activated:Connect(function() combatTab.Visible = true; visualTab.Visible = false end)
 b2.Activated:Connect(function() combatTab.Visible = false; visualTab.Visible = true end)
 
--- // 5. ESP DE LINHAS (FIX UNIVERSAL PARA BOX) // --
+-- // 5. ESP DE LINHAS (FIX PARA BOX NÃO PREENCHER) // --
 local function CreateESP(p)
     local L1 = Drawing.new("Line"); L1.Visible = false; L1.Color = Color3.new(1,0,0); L1.Thickness = 1
     local L2 = Drawing.new("Line"); L2.Visible = false; L2.Color = Color3.new(1,0,0); L2.Thickness = 1
@@ -138,6 +164,7 @@ end
 for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
 Players.PlayerAdded:Connect(CreateESP)
 
+-- // 6. AIMBOT // --
 RunService.RenderStepped:Connect(function()
     if _G.KTN_MS and _G.KTN_SESSION_KEY then
         local t, d = nil, 150
@@ -155,3 +182,4 @@ RunService.RenderStepped:Connect(function()
 end)
 
 mainBtn.Activated:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
+print("✅ Katana Hub V7.6 Finalizado com Sucesso!")
