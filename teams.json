@@ -1,0 +1,11 @@
+{
+  "Settings": {
+    "AutoTeamCheck": true,
+    "IgnoreNeutrals": false,
+    "InvertTeams": false
+  },
+  "Exceções": {
+    "AliadosManuais": [],
+    "InimigosManuais": []
+  }
+}
