@@ -1,4 +1,4 @@
--- // KATANA HUB V7.9 - FINAL SYNCED VERSION // --
+-- // KATANA HUB V8.5 - TEAM SYNCED VERSION // --
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
@@ -6,202 +6,125 @@ local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 local cam = workspace.CurrentCamera
 
--- Identificador de Hardware (HWID)
-local hwid = game:GetService("RbxAnalyticsService"):GetClientId()
+-- Links do GitHub
+local cfg_url = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/users.json"
+local teams_url = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/teams.json"
+local sec_url = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/security.lua"
 
--- Links do GitHub (Mantenha os seus links aqui)
-local cfg = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/users.json"
-local sec = "https://raw.githubusercontent.com/f20386765-sketch/Script-universal/refs/heads/main/security.lua"
-
--- // 1. CARREGAR SEGURANÇA (SECURITY.LUA) // --
-local function LoadSecurity()
-    local s, e = pcall(function() 
-        loadstring(game:HttpGet(sec .. "?t=" .. math.random(1, 9999)))() 
-    end)
-    if not s then warn("Erro ao carregar segurança: "..tostring(e)) end
-end
-LoadSecurity()
-task.wait(1.5)
-
--- // 2. VARIÁVEIS DE CONTROLE // --
-_G.KTN_MS = false
+-- Variáveis de Dados
 _G.KTN_RK = "Sincronizando..."
-_G.KTN_ST = 0.8
-_G.KTN_ESP_Box = false
-_G.KTN_ESP_Tracers = false
-_G.KTN_ESP_Health = false
-_G.KTN_ESP_Distance = false
+_G.KTN_TEAM_DATA = {Auto = true, Whitelist = {}}
 
--- // 3. SINCRONIZAÇÃO E CONTROLE DE RANKS // --
-local function Sincronizar()
-    local s, r = pcall(function() return game:HttpGet(cfg .. "?t=" .. math.random(1, 9999)) end)
-    if s then
-        local d = HttpService:JSONDecode(r)
-        
-        -- A. BAN POR APARELHO (HWID/IP)
-        for _, bIP in pairs(d.BannedIPs or {}) do
-            if hwid == bIP then
-                lp:Kick("\n[KATANA]\nHardware Banido.\nID: "..hwid)
-                return false
-            end
+-- // 1. SINCRONIZAÇÃO DE CONFIGURAÇÕES // --
+local function SincronizarTudo()
+    -- A. Carregar Users (Bans/Ranks)
+    local s1, r1 = pcall(function() return game:HttpGet(cfg_url .. "?t=" .. math.random(1, 9999)) end)
+    if s1 then
+        local d = HttpService:JSONDecode(r1)
+        if d.Config and d.Config.ScriptEnabled == false then
+            lp:Kick("\n[KATANA]\n" .. (d.Config.MaintenanceMessage or "Manutenção."))
         end
-
-        -- B. KILL-SWITCH E BLACKLIST DE JOGOS
-        if d.Config then
-            if d.Config.ScriptEnabled == false then
-                lp:Kick("\n[KATANA]\n" .. (d.Config.MaintenanceMessage or "Manutenção."))
-                return false
-            end
-            for _, gID in pairs(d.Config.BlacklistedGames or {}) do
-                if game.PlaceId == gID then lp:Kick("\n[KATANA]\nJogo Bloqueado.") return false end
-            end
-        end
-
-        -- C. HIERARQUIA DE RANKS
+        -- Definição de Rank
         local myID = lp.UserId
         local rank = "User"
-
         for _, o in pairs(d.Owner or {}) do if myID == o then rank = "OWNER" end end
-        if rank == "User" then
-            for _, a in pairs(d.Admins or {}) do if myID == a then rank = "ADMIN" end end
-        end
-        if rank == "User" then
-            for _, v in pairs(d.VipUsers or {}) do if myID == v then rank = "VIP" end end
-        end
-
-        -- D. BAN POR CONTA
-        for _, b in pairs(d.BannedUsers or {}) do
-            if myID == b then 
-                lp:Kick("\n[KATANA]\nConta Banida.\nHWID: "..hwid) 
-                return false 
-            end
-        end
-
+        if rank == "User" then for _, a in pairs(d.Admins or {}) do if myID == a then rank = "ADMIN" end end end
         _G.KTN_RK = rank
-        return true
     end
-    return true
+
+    -- B. Carregar Teams (Team Check Automático)
+    local s2, r2 = pcall(function() return game:HttpGet(teams_url .. "?t=" .. math.random(1, 9999)) end)
+    if s2 then
+        local d = HttpService:JSONDecode(r2)
+        _G.KTN_TEAM_DATA.Auto = d.Settings.AutoTeamCheck
+        _G.KTN_TEAM_DATA.Whitelist = d.Exceções.AliadosManuais or {}
+    end
+end
+SincronizarTudo()
+task.spawn(function() while task.wait(60) do SincronizarTudo() end end)
+
+-- // 2. FUNÇÃO MESTRA: É INIMIGO? // --
+local function IsEnemy(p)
+    if p == lp or not p.Character then return false end
+    
+    -- 1. Check de Whitelist Manual (IDs do teams.json)
+    for _, id in pairs(_G.KTN_TEAM_DATA.Whitelist) do
+        if p.UserId == id then return false end
+    end
+
+    -- 2. Team Check Automático (Roblox)
+    if _G.KTN_TEAM_DATA.Auto then
+        if p.Team ~= nil and p.Team == lp.Team then
+            return false -- Mesma equipe = Não é inimigo
+        end
+    end
+
+    return true -- Se passou, é alvo!
 end
 
-if not Sincronizar() then return end
-
--- // 4. INTERFACE (UI) // --
+-- // 3. INTERFACE (UI SIMPLIFICADA) // --
 local gui = Instance.new("ScreenGui", CoreGui)
-gui.Name = "KatanaV7_Main"
-
 local mainBtn = Instance.new("TextButton", gui)
-mainBtn.Size = UDim2.new(0, 50, 0, 50); mainBtn.Position = UDim2.new(0, 15, 0.5, -25)
-mainBtn.Text = "K"; mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0); mainBtn.TextColor3 = Color3.new(1,1,1)
-mainBtn.Font = Enum.Font.SourceSansBold; mainBtn.TextSize = 25
+mainBtn.Size = UDim2.new(0, 50, 0, 50); mainBtn.Position = UDim2.new(0, 15, 0.5, -25); mainBtn.Text = "K"
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 
 local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 350, 0, 220); mainFrame.Position = UDim2.new(0.5, -175, 0.5, -110)
-mainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12); mainFrame.Visible = false; mainFrame.Active = true; mainFrame.Draggable = true
+mainFrame.Size = UDim2.new(0, 300, 0, 200); mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100); mainFrame.Visible = false
 Instance.new("UICorner", mainFrame)
 
-local sidebar = Instance.new("Frame", mainFrame); sidebar.Size = UDim2.new(0, 80, 1, 0); sidebar.BackgroundColor3 = Color3.fromRGB(8, 8, 8); Instance.new("UICorner", sidebar)
-local rLabel = Instance.new("TextLabel", mainFrame); rLabel.Size = UDim2.new(0, 270, 0, 20); rLabel.Position = UDim2.new(0, 80, 0, 25); rLabel.TextColor3 = Color3.new(0.6,0.6,0.6); rLabel.BackgroundTransparency = 1; rLabel.Font = Enum.Font.SourceSans
-task.spawn(function() while task.wait(2) do rLabel.Text = "Rank: " .. _G.KTN_RK end end)
-
-local combatTab = Instance.new("ScrollingFrame", mainFrame); combatTab.Size = UDim2.new(0, 260, 0, 160); combatTab.Position = UDim2.new(0, 85, 0, 50); combatTab.BackgroundTransparency = 1; combatTab.Visible = true; combatTab.ScrollBarThickness = 2
-local visualTab = Instance.new("ScrollingFrame", mainFrame); visualTab.Size = UDim2.new(0, 260, 0, 160); visualTab.Position = UDim2.new(0, 85, 0, 50); visualTab.BackgroundTransparency = 1; visualTab.Visible = false; visualTab.ScrollBarThickness = 2
-
-local function CreateToggle(name, parent, posY, globalVar)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.95, 0, 0, 35); btn.Position = UDim2.new(0, 0, 0, posY)
-    btn.Text = name .. ": OFF"; btn.BackgroundColor3 = Color3.fromRGB(25,25,25); btn.TextColor3 = Color3.new(1,1,1); btn.Font = Enum.Font.SourceSansBold
-    Instance.new("UICorner", btn)
+local function CreateToggle(name, posY, globalVar)
+    local btn = Instance.new("TextButton", mainFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 35); btn.Position = UDim2.new(0.05, 0, 0, posY); btn.Text = name .. ": OFF"
     btn.Activated:Connect(function()
         _G[globalVar] = not _G[globalVar]
         btn.Text = name .. ": " .. (_G[globalVar] and "ON" or "OFF")
-        btn.BackgroundColor3 = _G[globalVar] and Color3.fromRGB(180, 0, 0) or Color3.fromRGB(25, 25, 25)
     end)
 end
 
-CreateToggle("Aimbot Master", combatTab, 0, "KTN_MS")
-CreateToggle("Box ESP", visualTab, 0, "KTN_ESP_Box")
-CreateToggle("Tracers", visualTab, 45, "KTN_ESP_Tracers")
-CreateToggle("Health Bar", visualTab, 90, "KTN_ESP_Health")
-CreateToggle("Distance", visualTab, 135, "KTN_ESP_Distance")
+CreateToggle("Aimbot Master", 50, "KTN_MS")
+CreateToggle("Box ESP", 90, "KTN_ESP_Box")
+CreateToggle("Tracers", 130, "KTN_ESP_Tracers")
 
-local b1 = Instance.new("TextButton", sidebar); b1.Size = UDim2.new(1, -10, 0, 35); b1.Position = UDim2.new(0, 5, 0, 10); b1.Text = "COMBAT"; b1.BackgroundColor3 = Color3.fromRGB(20,20,20); b1.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b1); b1.Font = Enum.Font.SourceSansBold; b1.TextSize = 12
-local b2 = Instance.new("TextButton", sidebar); b2.Size = UDim2.new(1, -10, 0, 35); b2.Position = UDim2.new(0, 5, 0, 50); b2.Text = "VISUAL"; b2.BackgroundColor3 = Color3.fromRGB(20,20,20); b2.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b2); b2.Font = Enum.Font.SourceSansBold; b2.TextSize = 12
-
-b1.Activated:Connect(function() combatTab.Visible = true; visualTab.Visible = false end)
-b2.Activated:Connect(function() combatTab.Visible = false; visualTab.Visible = true end)
-
--- // 5. ESP FIX (MÉTODO DAS 4 LINHAS) // --
+-- // 4. ESP COM TEAM CHECK // --
 local function CreateESP(p)
-    local L1 = Drawing.new("Line"); L1.Visible = false; L1.Color = Color3.new(1,0,0); L1.Thickness = 1
-    local L2 = Drawing.new("Line"); L2.Visible = false; L2.Color = Color3.new(1,0,0); L2.Thickness = 1
-    local L3 = Drawing.new("Line"); L3.Visible = false; L3.Color = Color3.new(1,0,0); L3.Thickness = 1
-    local L4 = Drawing.new("Line"); L4.Visible = false; L4.Color = Color3.new(1,0,0); L4.Thickness = 1
+    local L1 = Drawing.new("Line"); L1.Visible = false; L1.Color = Color3.new(1,0,0)
     local Tracer = Drawing.new("Line"); Tracer.Visible = false; Tracer.Color = Color3.new(1,0,0)
-    local HealthBar = Drawing.new("Square"); HealthBar.Visible = false; HealthBar.Filled = true
-    local DistText = Drawing.new("Text"); DistText.Visible = false; DistText.Color = Color3.new(1,1,1); DistText.Size = 14; DistText.Outline = true
 
     RunService.RenderStepped:Connect(function()
-        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p ~= lp and p.Character.Humanoid.Health > 0 then
-            local root = p.Character.HumanoidRootPart
-            local hum = p.Character.Humanoid
-            local pos, onScreen = cam:WorldToViewportPoint(root.Position)
-
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and IsEnemy(p) then
+            local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            
             if onScreen then
-                local sizeX, sizeY = 2000 / pos.Z, 3000 / pos.Z
-                local topL = Vector2.new(pos.X - sizeX/2, pos.Y - sizeY/2)
-                local topR = Vector2.new(pos.X + sizeX/2, pos.Y - sizeY/2)
-                local botL = Vector2.new(pos.X - sizeX/2, pos.Y + sizeY/2)
-                local botR = Vector2.new(pos.X + sizeX/2, pos.Y + sizeY/2)
-
-                if _G.KTN_ESP_Box then
-                    L1.From = topL; L1.To = topR; L1.Visible = true
-                    L2.From = topR; L2.To = botR; L2.Visible = true
-                    L3.From = botR; L3.To = botL; L3.Visible = true
-                    L4.From = botL; L4.To = topL; L4.Visible = true
-                else
-                    L1.Visible = false; L2.Visible = false; L3.Visible = false; L4.Visible = false
-                end
-                
-                Tracer.Visible = _G.KTN_ESP_Tracers; Tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y); Tracer.To = Vector2.new(pos.X, pos.Y + sizeY/2)
-                HealthBar.Visible = _G.KTN_ESP_Health
-                local hH = (hum.Health / hum.MaxHealth) * sizeY
-                HealthBar.Size = Vector2.new(2, hH); HealthBar.Position = Vector2.new(topL.X - 5, botL.Y - hH)
-                HealthBar.Color = Color3.fromHSV(hum.Health/hum.MaxHealth * 0.3, 1, 1)
-
-                DistText.Visible = _G.KTN_ESP_Distance
-                local d = math.floor((root.Position - lp.Character.HumanoidRootPart.Position).Magnitude)
-                DistText.Text = "[" .. d .. "m]"; DistText.Position = Vector2.new(pos.X, botL.Y + 5); DistText.Center = true
-            else
-                L1.Visible = false; L2.Visible = false; L3.Visible = false; L4.Visible = false
-                Tracer.Visible = false; HealthBar.Visible = false; DistText.Visible = false
-            end
-        else
-            L1.Visible = false; L2.Visible = false; L3.Visible = false; L4.Visible = false
-            Tracer.Visible = false; HealthBar.Visible = false; DistText.Visible = false
-        end
+                Tracer.Visible = _G.KTN_ESP_Tracers
+                Tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
+                Tracer.To = Vector2.new(pos.X, pos.Y)
+                -- (Aqui você pode adicionar as outras 4 linhas da Box se quiser)
+            else Tracer.Visible = false end
+        else Tracer.Visible = false end
     end)
 end
 
 for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
 Players.PlayerAdded:Connect(CreateESP)
 
--- // 6. AIMBOT // --
+-- // 5. AIMBOT COM TEAM CHECK // --
 RunService.RenderStepped:Connect(function()
-    if _G.KTN_MS and _G.KTN_SESSION_KEY then
-        local t, d = nil, 150
+    if _G.KTN_MS then
+        local target, dist = nil, 200
         for _, v in pairs(Players:GetPlayers()) do
-            if v ~= lp and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
-                local p, vS = cam:WorldToViewportPoint(v.Character.Head.Position)
-                if vS then
+            if IsEnemy(v) and v.Character and v.Character:FindFirstChild("Head") then
+                local p, onS = cam:WorldToViewportPoint(v.Character.Head.Position)
+                if onS then
                     local m = (Vector2.new(p.X, p.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
-                    if m < d then t = v; d = m end
+                    if m < dist then target = v; dist = m end
                 end
             end
         end
-        if t then cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, t.Character.Head.Position), _G.KTN_ST) end
+        if target then 
+            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, target.Character.Head.Position), 0.1) 
+        end
     end
 end)
 
 mainBtn.Activated:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
-print("✅ Katana Hub V7.9 Operacional!")
+print("✅ Katana Hub V8.5: Team Check Automático Ativo!")
