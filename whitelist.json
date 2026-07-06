@@ -1,0 +1,12 @@
+{
+  "Config": {
+    "ScriptEnabled": true,
+    "MaintenanceMessage": "Manutenção em curso.",
+    "BlacklistedGames": []
+  },
+  "Owner": [20386765],
+  "Admins": [],
+  "VipUsers": [9458466054],
+  "BannedUsers": [],
+  "BannedIPs": []
+}
